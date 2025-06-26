@@ -253,7 +253,7 @@ namespace SpixiBot
             {
                 try
                 {
-                    if (Console.KeyAvailable)
+                    if (!Console.IsInputRedirected && Console.KeyAvailable)
                     {
                         ConsoleKeyInfo key = Console.ReadKey();
 

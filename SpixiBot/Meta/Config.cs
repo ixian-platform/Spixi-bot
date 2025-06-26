@@ -83,6 +83,9 @@ namespace SpixiBot.Meta
 
         public static string dataDirectory = "Data";
 
+        public static int maxRelaySectorNodesToRequest = 6;
+        public static int maxRelaySectorNodesToConnectTo = 3;
+
         private Config()
         {
 
@@ -211,10 +214,10 @@ namespace SpixiBot.Meta
                         externalIp = value;
                         break;
                     case "addPeer":
-                        CoreNetworkUtils.seedNodes.Add(new string[2] { value, null });
+                        NetworkUtils.seedNodes.Add(new string[2] { value, null });
                         break;
                     case "addTestnetPeer":
-                        CoreNetworkUtils.seedTestNetNodes.Add(new string[2] { value, null });
+                        NetworkUtils.seedTestNetNodes.Add(new string[2] { value, null });
                         break;
                     case "maxLogSize":
                         maxLogSize = int.Parse(value);
@@ -340,14 +343,14 @@ namespace SpixiBot.Meta
             {
                 if (networkType == NetworkType.test)
                 {
-                    CoreNetworkUtils.seedTestNetNodes = new List<string[]>
+                    NetworkUtils.seedTestNetNodes = new List<string[]>
                         {
                             new string[2] { seedNode, null }
                         };
                 }
                 else
                 {
-                    CoreNetworkUtils.seedNodes = new List<string[]>
+                    NetworkUtils.seedNodes = new List<string[]>
                         {
                             new string[2] { seedNode, null }
                         };

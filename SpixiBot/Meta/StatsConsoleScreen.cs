@@ -87,14 +87,16 @@ namespace SpixiBot.Meta
             int connectionsIn = NetworkServer.getConnectedClients().Count();
 
 
+            string url = Config.apiBinds.First();
+
             writeLine(" ███████╗██████╗ ██╗██╗  ██╗██╗    ██████╗  ██████╗ ████████╗");
             writeLine(" ██╔════╝██╔══██╗██║╚██╗██╔╝██║    ██╔══██╗██╔═══██╗╚══██╔══╝");
             writeLine(" ███████╗██████╔╝██║ ╚███╔╝ ██║    ██████╔╝██║   ██║   ██║   ");
             writeLine(" ╚════██║██╔═══╝ ██║ ██╔██╗ ██║    ██╔══██╗██║   ██║   ██║   ");
             writeLine(" ███████║██║     ██║██╔╝ ██╗██║    ██████╔╝╚██████╔╝   ██║   ");
             writeLine(" ╚══════╝╚═╝     ╚═╝╚═╝  ╚═╝╚═╝    ╚═════╝  ╚═════╝    ╚═╝   ");
-            writeLine(" {0}", (Config.version + " BETA ").PadLeft(53));
-            writeLine(" {0}", ("http://localhost:" + Config.apiPort + "/"));
+            writeLine(" {0}", (Config.version + " BETA ").PadLeft(60));
+            writeLine(" {0}", url);
             writeLine("──────────────────────────────────────────────────────");
             if (update_avail)
             {

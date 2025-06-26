@@ -1,4 +1,5 @@
 ﻿using IXICore;
+using IXICore.Inventory;
 using IXICore.Meta;
 using IXICore.Network;
 using IXICore.RegNames;
@@ -15,25 +16,12 @@ using Activity = IXICore.Meta.Activity;
 
 namespace SpixiBot.Meta
 {
-    class Balance
-    {
-        public Address address = null;
-        public IxiNumber balance = 0;
-        public ulong blockHeight = 0;
-        public byte[] blockChecksum = null;
-        public bool verified = false;
-        public long lastUpdate = 0;
-    }
-
     class Node : IxianNode
     {
         // Public
         public static APIServer apiServer;
 
         public static StatsConsoleScreen statsConsoleScreen = null;
-
-
-        public static Balance balance = new Balance();      // Stores the last known balance for this node
 
         public static TransactionInclusion tiv = null;
 
@@ -53,6 +41,8 @@ namespace SpixiBot.Meta
         private bool generatedNewWallet = false;
 
         public static PushNotifications pushNotifications = null;
+
+        public static NetworkClientManagerStatic networkClientManagerStatic = null;
 
         public Node()
         {
@@ -96,8 +86,12 @@ namespace SpixiBot.Meta
 
             PeerStorage.init("");
 
+            // Network configuration
+            networkClientManagerStatic = new NetworkClientManagerStatic(Config.maxRelaySectorNodesToConnectTo);
+            NetworkClientManager.init(networkClientManagerStatic);
+
             // Init TIV
-            tiv = new TransactionInclusion();
+            tiv = new TransactionInclusion(new SpixiBotTransactionInclusionCallbacks(), false);
 
             string avatarPath = Path.Combine(Config.dataDirectory, "Avatars");
             users = new BotUsers(Path.Combine(Config.dataDirectory, "contacts.dat"), avatarPath, false);
@@ -232,12 +226,6 @@ namespace SpixiBot.Meta
         {
             UpdateVerify.start();
 
-            // Generate presence list
-            PresenceList.init(IxianHandler.publicIP, Config.serverPort, 'C');
-
-            // Start the network queue
-            NetworkQueue.start();
-
             ActivityStorage.prepareStorage();
 
             if (Config.apiBinds.Count == 0)
@@ -262,11 +250,21 @@ namespace SpixiBot.Meta
                 statsConsoleScreen.clearScreen();
             }
 
+            // Generate presence list
+            PresenceList.init(IxianHandler.publicIP, Config.serverPort, 'C', CoreConfig.clientKeepAliveInterval);
+
+            // Start the network queue
+            NetworkQueue.start();
+
             // Start the node stream server
             NetworkServer.beginNetworkOperations();
 
             // Start the network client manager
             NetworkClientManager.start(2);
+
+            InventoryCache.init(new InventoryCacheClient(tiv));
+
+            RelaySectors.init(CoreConfig.relaySectorLevels, null);
 
             // Start the keepalive thread
             PresenceList.startKeepAlive();
@@ -300,18 +298,27 @@ namespace SpixiBot.Meta
 
         static public bool update()
         {
+            byte[] primaryAddress = IxianHandler.getWalletStorage().getPrimaryAddress().addressNoChecksum;
+            if (primaryAddress == null)
+                return false;
+
+            byte[] getBalanceBytes;
+            using (MemoryStream mw = new MemoryStream())
+            {
+                using (BinaryWriter writer = new BinaryWriter(mw))
+                {
+                    writer.WriteIxiVarInt(primaryAddress.Length);
+                    writer.Write(primaryAddress);
+                }
+                getBalanceBytes = mw.ToArray();
+            }
+
+            Balance balance = IxianHandler.balances.First();
             // Request initial wallet balance
             if (balance.blockHeight == 0 || balance.lastUpdate + 300 < Clock.getTimestamp())
             {
-                using (MemoryStream mw = new MemoryStream())
-                {
-                    using (BinaryWriter writer = new BinaryWriter(mw))
-                    {
-                        writer.WriteIxiVarInt(IxianHandler.getWalletStorage().getPrimaryAddress().addressWithChecksum.Length);
-                        writer.Write(IxianHandler.getWalletStorage().getPrimaryAddress().addressWithChecksum);
-                        NetworkClientManager.broadcastData(new char[] { 'M', 'H' }, ProtocolMessageCode.getBalance2, mw.ToArray(), null);
-                    }
-                }
+                CoreProtocolMessage.broadcastProtocolMessage(['M', 'H', 'R'], ProtocolMessageCode.getBalance2, getBalanceBytes, null);
+                CoreProtocolMessage.fetchSectorNodes(IxianHandler.primaryWalletAddress, Config.maxRelaySectorNodesToRequest);
             }
 
             if (IxianHandler.status != NodeStatus.warmUp)
@@ -411,42 +418,6 @@ namespace SpixiBot.Meta
             networkBlockVersion = block_version;
         }
 
-        public override void receivedTransactionInclusionVerificationResponse(byte[] txid, bool verified)
-        {
-            // TODO implement error
-            // TODO implement blocknum
-
-            ActivityStatus status = ActivityStatus.Pending;
-            if (verified)
-            {
-                status = ActivityStatus.Final;
-                PendingTransaction p_tx = PendingTransactions.getPendingTransaction(txid);
-                if (p_tx != null)
-                {
-                    if (p_tx.messageId != null)
-                    {
-                        StreamProcessor.confirmMessage(p_tx.messageId);
-                    }
-                    PendingTransactions.remove(txid);
-                }
-            }
-
-            ActivityStorage.updateStatus(txid, status, 0);
-        }
-
-        public override void receivedBlockHeader(Block block_header, bool verified)
-        {
-            if (balance.blockChecksum != null && balance.blockChecksum.SequenceEqual(block_header.blockChecksum))
-            {
-                balance.verified = true;
-            }
-            if (block_header.blockNum >= networkBlockHeight)
-            {
-                IxianHandler.status = NodeStatus.ready;
-                setNetworkBlock(block_header.blockNum, block_header.blockChecksum, block_header.version);
-            }
-        }
-
         public override ulong getLastBlockHeight()
         {
             if (tiv.getLastBlockHeader() == null)
@@ -472,11 +443,15 @@ namespace SpixiBot.Meta
             return tiv.getLastBlockHeader().version;
         }
 
-        public override bool addTransaction(Transaction tx, bool force_broadcast)
+        public override bool addTransaction(Transaction tx, List<Address> relayNodeAddresses, bool force_broadcast)
         {
             // TODO Send to peer if directly connectable
-            CoreProtocolMessage.broadcastProtocolMessage(new char[] { 'M', 'H' }, ProtocolMessageCode.transactionData2, tx.getBytes(true, true), null);
-            PendingTransactions.addPendingLocalTransaction(tx);
+            foreach (var address in relayNodeAddresses)
+            {
+                NetworkClientManager.sendToClient(address, ProtocolMessageCode.transactionData2, tx.getBytes(true, true), null);
+            }
+            //CoreProtocolMessage.broadcastProtocolMessage(new char[] { 'R' }, ProtocolMessageCode.transactionData2, tx.getBytes(true, true), null);
+            PendingTransactions.addPendingLocalTransaction(tx, relayNodeAddresses);
             return true;
         }
 
@@ -489,20 +464,20 @@ namespace SpixiBot.Meta
 
         public override Wallet getWallet(Address id)
         {
-            // TODO Properly implement this for multiple addresses
-            if (balance.address != null && id.SequenceEqual(balance.address))
+            foreach (Balance balance in IxianHandler.balances)
             {
-                return new Wallet(balance.address, balance.balance);
+                if (id.addressNoChecksum.SequenceEqual(balance.address.addressNoChecksum))
+                    return new Wallet(id, balance.balance);
             }
             return new Wallet(id, 0);
         }
 
         public override IxiNumber getWalletBalance(Address id)
         {
-            // TODO Properly implement this for multiple addresses
-            if (balance.address != null && id.SequenceEqual(balance.address))
+            foreach (Balance balance in IxianHandler.balances)
             {
-                return balance.balance;
+                if (id.addressNoChecksum.SequenceEqual(balance.address.addressNoChecksum))
+                    return balance.balance;
             }
             return 0;
         }
@@ -594,6 +569,7 @@ namespace SpixiBot.Meta
                     // if transaction expired, remove it from pending transactions
                     if (last_block_height > ConsensusConfig.getRedactedWindowSize() && t.blockHeight < last_block_height - ConsensusConfig.getRedactedWindowSize())
                     {
+                        Logging.error("Error sending the transaction {0}", t.getTxIdString());
                         ActivityStorage.updateStatus(t.id, ActivityStatus.Error, 0);
                         PendingTransactions.pendingTransactions.RemoveAll(x => x.transaction.id.SequenceEqual(t.id));
                         continue;

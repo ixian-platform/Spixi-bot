@@ -449,16 +449,17 @@ namespace SpixiBot.Network
                         return;
                     }
 
-                    CoreProtocolMessage.broadcastProtocolMessage(new char[] { 'M', 'H' }, ProtocolMessageCode.transactionData2, stream_tx.transaction.getBytes(true, true), null);
+                    // TODO Add relay nodes
+                    //CoreProtocolMessage.broadcastProtocolMessage(new char[] { 'M', 'H' }, ProtocolMessageCode.transactionData2, stream_tx.transaction.getBytes(true, true), null);
                     CoreProtocolMessage.broadcastGetTransaction(stream_tx.transaction.id, 0, null, false);
-                    PendingTransactions.addPendingLocalTransaction(stream_tx.transaction, stream_tx.messageID);
+                    PendingTransactions.addPendingLocalTransaction(stream_tx.transaction, null, stream_tx.messageID);
                     break;
 
                 case SpixiBotActionCode.enableNotifications:
                     bool send_notifications = false;
                     if (sba.data[0] == 1)
                     {
-                        send_notifications = true;
+                        //send_notifications = true;
                     }
                     Node.users.getUser(endpoint.presence.wallet).sendNotification = send_notifications;
                     Node.users.writeContactsToFile();
