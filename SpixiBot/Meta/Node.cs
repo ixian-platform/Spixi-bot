@@ -35,9 +35,6 @@ namespace SpixiBot.Meta
 
         public static bool running = false;
 
-        private static ulong networkBlockHeight = 0;
-        private static byte[] networkBlockChecksum = null;
-        private static int networkBlockVersion = 0;
         private bool generatedNewWallet = false;
 
         public static PushNotifications pushNotifications = null;
@@ -56,6 +53,7 @@ namespace SpixiBot.Meta
 
             CoreConfig.simultaneousConnectedNeighbors = 6;
 
+            IxianHandler.enableNetworkServer = true;
             IxianHandler.init(Config.version, this, Config.networkType, true);
             init();
         }
@@ -164,6 +162,14 @@ namespace SpixiBot.Meta
                     }
                     if (walletStorage.readWallet(password))
                     {
+                        IxianHandler.addWallet(walletStorage);
+
+                        // Prepare the balances list
+                        List<Address> address_list = IxianHandler.getWalletStorage().getMyAddresses();
+                        foreach (Address addr in address_list)
+                        {
+                            IxianHandler.balances.Add(new Balance(addr, 0));
+                        }
                         success = true;
                     }
                 }
@@ -411,13 +417,6 @@ namespace SpixiBot.Meta
             return true;
         }
 
-        static public void setNetworkBlock(ulong block_height, byte[] block_checksum, int block_version)
-        {
-            networkBlockHeight = block_height;
-            networkBlockChecksum = block_checksum;
-            networkBlockVersion = block_version;
-        }
-
         public override ulong getLastBlockHeight()
         {
             if (tiv.getLastBlockHeader() == null)
@@ -429,7 +428,14 @@ namespace SpixiBot.Meta
 
         public override ulong getHighestKnownNetworkBlockHeight()
         {
-            return networkBlockHeight;
+            ulong bh = getLastBlockHeight();
+            ulong netBlockNum = CoreProtocolMessage.determineHighestNetworkBlockNum();
+            if (bh < netBlockNum)
+            {
+                bh = netBlockNum;
+            }
+
+            return bh;
         }
 
         public override int getLastBlockVersion()

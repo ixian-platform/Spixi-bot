@@ -56,7 +56,7 @@ namespace SpixiBot.Network
                                 if (CoreProtocolMessage.processHelloMessageV6(endpoint, reader))
                                 {
                                     char node_type = endpoint.presenceAddress.type;
-                                    if (node_type != 'M' && node_type != 'H')
+                                    if (node_type != 'M' && node_type != 'H' && node_type != 'R')
                                     {
                                         CoreProtocolMessage.sendBye(endpoint, ProtocolByeCode.expectingMaster, string.Format("Expecting master node."), "", true);
                                         return;
@@ -81,21 +81,42 @@ namespace SpixiBot.Network
 
                                     }
 
-                                    string address = Node.networkClientManagerStatic.getMyAddress();
-                                    if (address != null)
-                                    {
-                                        if (IxianHandler.publicIP != address)
-                                        {
-                                            Logging.info("Setting public IP to " + address);
-                                            IxianHandler.publicIP = address;
-                                        }
-                                    }
-
                                     // Process the hello data
                                     endpoint.helloReceived = true;
                                     NetworkClientManager.recalculateLocalTimeDifference();
 
-                                    Node.setNetworkBlock(last_block_num, block_checksum, block_version);
+                                    if (node_type == 'R')
+                                    {
+                                        string[] connected_servers = StreamClientManager.getConnectedClients(true);
+                                        if (connected_servers.Count() == 1)
+                                        {
+                                            string address = Node.networkClientManagerStatic.getMyAddress();
+                                            if (address != null)
+                                            {
+                                                if (IxianHandler.publicIP != address)
+                                                {
+                                                    Logging.info("Setting public IP to " + address);
+                                                    IxianHandler.publicIP = address;
+                                                    PresenceList.forceSendKeepAlive = true;
+                                                    Logging.info("Forcing KA from networkprotocol");
+                                                }
+                                            }
+                                        }
+                                        else
+                                        {
+                                            // Announce local presence
+                                            var myPresence = PresenceList.curNodePresence;
+                                            if (myPresence != null)
+                                            {
+                                                foreach (var pa in myPresence.addresses)
+                                                {
+                                                    byte[] hash = CryptoManager.lib.sha3_512sqTrunc(pa.getBytes());
+                                                    var iika = new InventoryItemKeepAlive(hash, pa.lastSeenTime, myPresence.wallet, pa.device);
+                                                    endpoint.addInventoryItem(iika);
+                                                }
+                                            }
+                                        }
+                                    }
 
                                     if (node_type == 'M'
                                         || node_type == 'H'
@@ -267,6 +288,10 @@ namespace SpixiBot.Network
 
                     case ProtocolMessageCode.rejected:
                         handleRejected(data, endpoint);
+                        break;
+
+                    case ProtocolMessageCode.getKeepAlives:
+                        CoreProtocolMessage.processGetKeepAlives(data, endpoint);
                         break;
 
                     default:
