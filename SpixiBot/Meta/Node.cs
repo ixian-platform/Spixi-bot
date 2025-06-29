@@ -324,7 +324,7 @@ namespace SpixiBot.Meta
             if (balance.blockHeight == 0 || balance.lastUpdate + 300 < Clock.getTimestamp())
             {
                 CoreProtocolMessage.broadcastProtocolMessage(['M', 'H', 'R'], ProtocolMessageCode.getBalance2, getBalanceBytes, null);
-                CoreProtocolMessage.fetchSectorNodes(IxianHandler.primaryWalletAddress, Config.maxRelaySectorNodesToRequest);
+                CoreProtocolMessage.fetchSectorNodes(IxianHandler.primaryWalletAddress, CoreConfig.maxRelaySectorNodesToRequest);
             }
 
             if (IxianHandler.status != NodeStatus.warmUp)

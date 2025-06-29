@@ -83,7 +83,7 @@ namespace SpixiBot.Meta
 
         public static string dataDirectory = "Data";
 
-        public static int maxRelaySectorNodesToRequest = 6;
+
         public static int maxRelaySectorNodesToConnectTo = 3;
 
         private Config()
