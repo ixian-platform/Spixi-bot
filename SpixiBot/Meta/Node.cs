@@ -583,9 +583,11 @@ namespace SpixiBot.Meta
 
                     if (cur_time - tx_time > 40) // if the transaction is pending for over 40 seconds, resend
                     {
-                        CoreProtocolMessage.broadcastProtocolMessage(new char[] { 'M', 'H' }, ProtocolMessageCode.transactionData2, t.getBytes(true, true), null);
+                        foreach (var address in entry.relayNodeAddresses)
+                        {
+                            NetworkClientManager.sendToClient(address, ProtocolMessageCode.transactionData2, t.getBytes(true, true), null);
+                        }
                         entry.addedTimestamp = cur_time;
-                        entry.confirmedNodeList.Clear();
                     }
 
                     if (entry.confirmedNodeList.Count() >= 2) // if we get transaction from 2 nodes, we can consider it as confirmed
