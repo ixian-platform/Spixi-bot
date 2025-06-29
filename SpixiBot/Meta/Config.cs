@@ -43,11 +43,11 @@ namespace SpixiBot.Meta
         public static List<Address> whiteList = new List<Address>();
 
         // Read-only values
-        public static readonly string version = "xsbc-0.5.7a-PR1"; // Spixi Bot version
+        public static readonly string version = "xsbc-0.6.0-PR1"; // Spixi Bot version
 
         public static readonly string pushServiceUrl = "https://ipn.ixian.io/v1";
 
-        public static readonly string checkVersionUrl = "https://www.ixian.io/bot-update.txt";
+        public static readonly string checkVersionUrl = "https://resources.ixian.io/bot-update.txt";
         public static readonly int checkVersionSeconds = 6 * 60 * 60; // 6 hours
 
         public static readonly int maximumStreamClients = 10000; // Maximum number of stream clients this server can accept

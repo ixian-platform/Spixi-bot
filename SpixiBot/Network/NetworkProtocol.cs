@@ -87,8 +87,9 @@ namespace SpixiBot.Network
 
                                     if (node_type == 'R')
                                     {
-                                        string[] connected_servers = StreamClientManager.getConnectedClients(true);
-                                        if (connected_servers.Count() == 1)
+                                        string[] connected_servers = NetworkClientManager.getConnectedClients(true);
+                                        if (connected_servers.Count() == 1
+                                            || IxianHandler.publicIP == "")
                                         {
                                             string address = Node.networkClientManagerStatic.getMyAddress();
                                             if (address != null)

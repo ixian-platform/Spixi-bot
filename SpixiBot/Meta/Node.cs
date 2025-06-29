@@ -588,7 +588,7 @@ namespace SpixiBot.Meta
                         entry.confirmedNodeList.Clear();
                     }
 
-                    if (entry.confirmedNodeList.Count() >= 3) // if we get transaction from 3 nodes, we can consider it as confirmed
+                    if (entry.confirmedNodeList.Count() >= 2) // if we get transaction from 2 nodes, we can consider it as confirmed
                     {
                         if(entry.messageId != null)
                         {
