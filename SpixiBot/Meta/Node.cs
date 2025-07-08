@@ -599,7 +599,7 @@ namespace SpixiBot.Meta
                         continue;
                     }
 
-                    if (cur_time - tx_time > 20) // if the transaction is pending for over 20 seconds, send inquiry
+                    if (cur_time - tx_time > 30) // if the transaction is pending for over 30 seconds, send inquiry
                     {
                         CoreProtocolMessage.broadcastGetTransaction(t.id, 0, null, false);
                     }

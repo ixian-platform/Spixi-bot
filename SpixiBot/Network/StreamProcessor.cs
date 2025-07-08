@@ -97,6 +97,22 @@ namespace SpixiBot.Network
                     }
                     break;
 
+                case SpixiMessageCode.requestAdd2:
+                    // Friend request
+                    var version_with_offset = spixi_msg.data.GetIxiVarUInt(0);
+                    var pub_key_with_offset = spixi_msg.data.ReadIxiBytes(version_with_offset.bytesRead);
+                    var pub_key = pub_key_with_offset.bytes;
+                    if (!new Address(pub_key).SequenceEqual(message.sender) || !message.verifySignature(pub_key))
+                    {
+                        Logging.error("Unable to verify signature for message type: {0}, id: {1}, from: {2}.", message.type, Crypto.hashToString(message.id), message.sender.ToString());
+                    }
+                    else
+                    {
+                        sendAcceptAdd(endpoint.presence.wallet, endpoint.presence.pubkey);
+                        sendAvatar(endpoint.presence.wallet, null);
+                    }
+                    break;
+                    
                 case SpixiMessageCode.getPubKey:
                     if (Node.users.hasUser(new Address(spixi_msg.data)))
                     {
