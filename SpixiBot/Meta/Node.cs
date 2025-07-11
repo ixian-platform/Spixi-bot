@@ -540,13 +540,33 @@ namespace SpixiBot.Meta
                 {
                     foreach (var entry in wallet_list)
                     {
-                        activity = new Activity(IxianHandler.getWalletStorage().getSeedHash(), Base58Check.Base58CheckEncoding.EncodePlain(entry), Base58Check.Base58CheckEncoding.EncodePlain(primary_address.addressNoChecksum), transaction.toList, type, transaction.id, transaction.toList.First(x => x.Key.addressNoChecksum.SequenceEqual(entry)).ToString(), transaction.timeStamp, status, transaction.applied, transaction.getTxIdString());
+                        activity = new Activity(IxianHandler.getWalletStorage().getSeedHash(),
+                                                Base58Check.Base58CheckEncoding.EncodePlain(entry),
+                                                Base58Check.Base58CheckEncoding.EncodePlain(primary_address.addressNoChecksum),
+                                                transaction.toList,
+                                                type,
+                                                transaction.id,
+                                                transaction.toList[new Address(entry)].amount.ToString(),
+                                                transaction.timeStamp,
+                                                status,
+                                                transaction.applied,
+                                                transaction.getTxIdString());
                         ActivityStorage.insertActivity(activity);
                     }
                 }
                 else if (wallet != null)
                 {
-                    activity = new Activity(IxianHandler.getWalletStorage().getSeedHash(), Base58Check.Base58CheckEncoding.EncodePlain(wallet.addressNoChecksum), Base58Check.Base58CheckEncoding.EncodePlain(primary_address.addressNoChecksum), transaction.toList, type, transaction.id, value.ToString(), transaction.timeStamp, status, transaction.applied, transaction.getTxIdString());
+                    activity = new Activity(IxianHandler.getWalletStorage().getSeedHash(),
+                                            Base58Check.Base58CheckEncoding.EncodePlain(wallet.addressNoChecksum),
+                                            Base58Check.Base58CheckEncoding.EncodePlain(primary_address.addressNoChecksum),
+                                            transaction.toList,
+                                            type,
+                                            transaction.id,
+                                            value.ToString(),
+                                            transaction.timeStamp,
+                                            status,
+                                            transaction.applied,
+                                            transaction.getTxIdString());
                     ActivityStorage.insertActivity(activity);
                 }
             }
