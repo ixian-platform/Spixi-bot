@@ -1,4 +1,5 @@
 ﻿using IXICore;
+using IXICore.Activity;
 using IXICore.SpixiBot;
 using Org.BouncyCastle.Utilities.Encoders;
 using SpixiBot.Meta;
@@ -7,16 +8,15 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
-using System.Text;
 
 namespace SpixiBot
 {
     class APIServer : GenericAPIServer
     {
-        public APIServer(List<string> listen_URLs, Dictionary<string, string> authorized_users = null, List<string> allowed_IPs = null)
+        public APIServer(List<string> listen_URLs, Dictionary<string, string> authorized_users = null, List<string> allowed_IPs = null, IActivityStorage activityStorage = null)
         {
             // Start the API server
-            start(listen_URLs, authorized_users, allowed_IPs);
+            start(listen_URLs, authorized_users, allowed_IPs, activityStorage);
         }
 
         protected override bool processRequest(HttpListenerContext context, string methodName, Dictionary<string, object> parameters)

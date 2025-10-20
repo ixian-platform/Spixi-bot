@@ -372,7 +372,7 @@ namespace SpixiBot.Network
         {
             byte[] hash = CryptoManager.lib.sha3_512sqTrunc(data);
 
-            InventoryCache.Instance.setProcessedFlag(InventoryItemTypes.keepAlive, hash, true);
+            InventoryCache.Instance.setProcessedFlag(InventoryItemTypes.keepAlive, hash);
 
             Address address = null;
             long last_seen = 0;
@@ -382,7 +382,6 @@ namespace SpixiBot.Network
 
             Logging.trace("Received keepalive update for " + address);
         }
-
 
         static void handleInventory2(byte[] data, RemoteEndpoint endpoint)
         {
@@ -413,7 +412,7 @@ namespace SpixiBot.Network
                         {
                             PendingTransactions.increaseReceivedCount(item.hash, endpoint.presence.wallet);
                         }
-                        PendingInventoryItem pii = InventoryCache.Instance.add(item, endpoint);
+                        PendingInventoryItem pii = InventoryCache.Instance.add(item, endpoint, false);
 
                         // First update endpoint blockheights
                         switch (item.type)
@@ -454,7 +453,7 @@ namespace SpixiBot.Network
                                     var iib = ((InventoryItemBlock)item);
                                     if (iib.blockNum <= last_accepted_block_height)
                                     {
-                                        InventoryCache.Instance.setProcessedFlag(iib.type, iib.hash, true);
+                                        InventoryCache.Instance.setProcessedFlag(iib.type, iib.hash);
                                         continue;
                                     }
 
@@ -469,6 +468,7 @@ namespace SpixiBot.Network
 
                                 default:
                                     Logging.warn("Unhandled inventory item {0}", item.type);
+                                    InventoryCache.Instance.setProcessedFlag(item.type, item.hash);
                                     break;
                             }
                         }
@@ -484,9 +484,8 @@ namespace SpixiBot.Network
         static void requestNextBlock(ulong blockNum, byte[] blockHash, RemoteEndpoint endpoint)
         {
             InventoryItemBlock iib = new InventoryItemBlock(blockHash, blockNum);
-            PendingInventoryItem pii = InventoryCache.Instance.add(iib, endpoint);
-            if (!pii.processed
-                && pii.lastRequested == 0)
+            PendingInventoryItem pii = InventoryCache.Instance.add(iib, endpoint, true);
+            if (pii.lastRequested == 0)
             {
                 pii.lastRequested = Clock.getTimestamp();
                 InventoryCache.Instance.processInventoryItem(pii);

@@ -1,4 +1,5 @@
 ﻿using IXICore;
+using IXICore.Activity;
 using IXICore.Meta;
 using SpixiBot.Network;
 using System;
@@ -28,7 +29,7 @@ namespace SpixiBot.Meta
                 }
             }
 
-            ActivityStorage.updateStatus(txid, status, 0);
+            Node.activityStorage.updateStatus(txid, status, 0);
         }
 
         public void receivedBlockHeader(Block block_header, bool verified)

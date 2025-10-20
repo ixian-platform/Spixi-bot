@@ -329,7 +329,7 @@ namespace SpixiBot.Network
 
         public static void onMsgReaction(StreamMessage reaction_msg, byte[] msg_reaction_data, int channel, RemoteEndpoint endpoint)
         {
-            SpixiMessageReaction smr = new SpixiMessageReaction(msg_reaction_data);
+            ReactionMessage smr = new ReactionMessage(msg_reaction_data);
             StreamMessage msg = Messages.getMessage(smr.msgId, channel);
             if (msg == null)
             {

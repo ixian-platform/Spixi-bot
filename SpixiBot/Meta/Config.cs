@@ -43,7 +43,7 @@ namespace SpixiBot.Meta
         public static List<Address> whiteList = new List<Address>();
 
         // Read-only values
-        public static readonly string version = "xsbc-0.6.1a-PR1"; // Spixi Bot version
+        public static readonly string version = "xsbc-0.6.2-PR1"; // Spixi Bot version
 
         public static readonly string pushServiceUrl = "https://ipn.ixian.io/v1";
 
